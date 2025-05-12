@@ -33,7 +33,7 @@ const injectTailwindAnimations = `
 }
 `;
 
-const ChatBot: React.FC = () => {
+const ChatBot = () => {
   return (
     <ChatProvider>
       <style>{injectTailwindAnimations}</style>

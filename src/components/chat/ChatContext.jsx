@@ -1,7 +1,6 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { Message, ChatContextType } from './types';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 
-const ChatContext = createContext<ChatContextType | undefined>(undefined);
+const ChatContext = createContext();
 
 export const useChatContext = () => {
   const context = useContext(ChatContext);
@@ -11,20 +10,14 @@ export const useChatContext = () => {
   return context;
 };
 
-export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      content: 'Hello! How can I assist you today?',
-      role: 'assistant',
-      timestamp: new Date()
-    }
+export const ChatProvider = ({ children }) => {
+  const [messages, setMessages] = useState([
   ]);
   const [isOpen, setIsOpen] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
 
-  const addMessage = useCallback((content: string, role: 'user' | 'assistant') => {
-    const newMessage: Message = {
+  const addMessage = useCallback((content, role) => {
+    const newMessage = {
       id: Date.now().toString(),
       content,
       role,
