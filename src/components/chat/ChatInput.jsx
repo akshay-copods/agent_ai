@@ -6,7 +6,7 @@ import { db } from '../../config';
 
 const ChatInput = () => {
   const [input, setInput] = useState('');
-  const { addMessage } = useChatContext();
+  const { addMessage, messages } = useChatContext();
 
   const [response, setResponse] = useState('');
   const [loading, setLoading] = useState(false);
@@ -37,10 +37,10 @@ const ChatInput = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ prompt: input }),
+        body: JSON.stringify({ prompt: input, chatHistory: messages }),
       });
       const data = await res.json();
-      addMessage(data.text, 'assistant');
+      addMessage(data.text, 'model');
       setResponse(data.text);
     } catch (error) {
       console.error('Error:', error);

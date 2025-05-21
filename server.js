@@ -2,66 +2,114 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { googleAI } from '@genkit-ai/googleai';
-import { genkit } from 'genkit';
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import fs from 'fs';
-dotenv.config();
-const serviceAccountKey = JSON.parse(fs.readFileSync(process.env.FIREBASE_SERVICE_ACCOUNT_KEY_PATH, 'utf8'));
+import { createAI } from './genkit.config.js';
+import { addPassionTool, addActivityTool, googleSearchTool } from './tools.js';
+import { addPassion, addActivity } from './handler.js';
 
+dotenv.config();
+// const serviceAccountKey = JSON.parse(fs.readFileSync(process.env.FIREBASE_SERVICE_ACCOUNT_KEY_PATH, 'utf8'));
 
 const app = express();
 const port = process.env.PORT || 5001;
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Initialize Firebase Admin SDK
-initializeApp({
-    credential: cert(serviceAccountKey)
-});
-
-const db = getFirestore();
-
-// Set up Genkit API
-const ai = genkit({
-    plugins: [googleAI({
-        apiKey: process.env.GEMINI_API_KEY, // Use the API key from the .env file
-    })],
-    model: googleAI.model('gemini-2.0-flash'), // Set default model
-    temperature: 0.5,
-    maxTokens: 1000,
-    topP: 1,
-    topK: 1,
-    frequencyPenalty: 0,
-    presencePenalty: 0,
-    // tools: [addPassion, addActivity],
-});
+// // Initialize Firebase Admin SDK
+// initializeApp({
+//     credential: cert(serviceAccountKey)
+// });
+// const db = getFirestore();
 
 // Endpoint to interact with Genkit
 app.post('/generate', async (req, res) => {
     try {
-        const { prompt } = req.body; // Get prompt from the request body
-        console.log({prompt, req: req.body})
-        const { text } = await ai.generate(prompt); // Generate response using Genkit
+        const { prompt, chatHistory } = req.body;
 
-        const messagesRef = db.collection('messages');
-        const docRef = await messagesRef.add({
-            text: text,
-            timestamp: new Date(),
+        const tools = [addPassionTool, addActivityTool, googleSearchTool]
+
+        // trim chat history excluding fist message since it is actual prompt we need to send
+        const trimChatHistory = chatHistory.slice(1);
+        
+        const chatHistoryPrompt = trimChatHistory.map(message => `${message.role}: ${message.content}\n`);
+
+        console.log({prompt, req: req.body});
+        console.log("123",chatHistoryPrompt[0]);
+
+        const inputPrompt = {
+            text: `[RAW USER INPUT TO PROCESS]
+        ${prompt}
+        
+        [SYSTEM RULES]
+        1. Extract activity/passion names DIRECTLY from text
+        2. NEVER ask follow-up questions
+        3. Format names EXACTLY as mentioned
+        4. Auto-fill parameters using pattern: 
+            - Activity: "[verb] [event]" (e.g., "won karate competition")
+            - Passion: "[base noun]" (e.g., "karate")`
+        }
+
+        const userMessage = typeof prompt === 'string' 
+        ? prompt 
+        : JSON.stringify(prompt).replace(/"/g, '');
+
+        const response = await createAI({
+            prompt: {
+                text: `
+                    Answer the following question: ${userMessage}
+
+                    Please use these following chat history as context: ${chatHistoryPrompt}
+
+                    Please follow the following tools and rules you need to follow: 
+
+                    You are a friendly assistant named Chotu. You have two backend tools you can call:
+                    1. addPassion(name) – adds a hobby/interest to the user’s profile  
+                    2. addActivity(title, date?) – adds an event/achievement/competition  
+                    
+                    **Mode switching**  
+                    - If the user is just making small talk, asking how you are, or requesting general info, **do not** call any tools—just reply naturally.
+                    - Before calling tools, show user the tool call and ask for confirmation.
+                    - If the user mentions a hobby or ongoing interest (e.g. “I love painting,” “I’ve been learning guitar”), call **addPassion** with the passion name, then confirm with a friendly sentence.  
+                    - If the user mentions a specific event, achievement, or competition (e.g. “I ran the city marathon on March 3rd,” “I won the debate contest”), call **addActivity** with title and date, then confirm.  
+                    - If the user message contains both, call both tools in the appropriate order, then confirm both additions in a single reply.
+                    
+                    **Reply style**  
+                    - Always respond in plain, warm English.  
+                    - After calling tools, summarize what you added:  
+                    “[✅] Added passion: painting.  
+                    [✅] Added activity: city marathon on 2025‑03‑03.”  
+                    
+                    **Examples**  
+                    User: “Hi there!”  
+                    Assistant: “Hey! I’m doing great—how can I help you today?”  
+                    
+                    User: “I’ve been practicing yoga every morning.”  
+                    Assistant (internally): addPassion(“yoga”)  
+                    Assistant → “Awesome! [✅] I’ve added your passion: yoga. Anything else you’d like to add?”  
+                    
+                    User: “How’s the weather?”  
+                    Assistant: “It’s sunny where I am—what’s up?”  
+                    
+                    Now here’s the user’s latest message:  
+                    “${prompt}”
+                        `.trim()
+            },
+            tools,
+            history: chatHistoryPrompt
         });
-        console.log('Added doc with ID:', docRef.id);
 
-        res.json({ text });
+        console.log({response});
+        res.json(response);
     } catch (error) {
-        console.error('Error generating text:', error);
-        res.status(500).json({ error: 'Failed to generate text' });
+        console.error('Error generating text:', error.message);
+        console.error('Error stack:', error.stack);
+        res.status(500).json({ error: error.message });
     }
 });
 
-// Start the server
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
 });
