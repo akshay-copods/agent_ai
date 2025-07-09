@@ -32,7 +32,7 @@ const ChatInput = () => {
     addMessage(input, 'user');
     setInput('');
     try {
-      const res = await fetch('http://localhost:5001/generate', {
+      const res = await fetch('http://localhost:5001/generateLangChain', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

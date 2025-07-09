@@ -13,7 +13,7 @@ dotenv.config();
 // const serviceAccountKey = JSON.parse(fs.readFileSync(process.env.FIREBASE_SERVICE_ACCOUNT_KEY_PATH, 'utf8'));
 
 const app = express();
-const port = process.env.PORT || 5001;
+const port = process.env.PORT || 5002;
 
 app.use(cors());
 app.use(express.json());
