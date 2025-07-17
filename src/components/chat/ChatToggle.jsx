@@ -2,7 +2,7 @@ import React from 'react';
 import { useChatContext } from './ChatContext';
 import { MessageSquare } from 'lucide-react';
 
-const ChatToggle: React.FC = () => {
+const ChatToggle = () => {
   const { toggleChat, isOpen } = useChatContext();
 
   return (

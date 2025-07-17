@@ -1,11 +1,6 @@
 import React from 'react';
-import { Message } from './types';
 
-interface ChatMessageProps {
-  message: Message;
-}
-
-const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
+const ChatMessage = ({ message }) => {
   const isUser = message.role === 'user';
   const formattedTime = message.timestamp.toLocaleTimeString([], { 
     hour: '2-digit', 

@@ -1,9 +1,9 @@
 import ChatBot from './components/chat/ChatBot';
-import { main } from './geminiHelper';
+// import { main } from './server';
 
 function App() {
   const awakeMonster = () => {
-    main();
+    // main();
   };
 
   return (

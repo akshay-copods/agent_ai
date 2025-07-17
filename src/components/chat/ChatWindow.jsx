@@ -4,9 +4,9 @@ import ChatInput from './ChatInput';
 import { useChatContext } from './ChatContext';
 import { X, MinusIcon } from 'lucide-react';
 
-const ChatWindow: React.FC = () => {
+const ChatWindow = () => {
   const { messages, isOpen, toggleChat, isTyping } = useChatContext();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef(null);
   
   // Auto-scroll to bottom on new messages
   useEffect(() => {

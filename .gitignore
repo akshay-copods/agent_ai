@@ -34,3 +34,6 @@ yarn-error.log*
 
 # System
 .DS_Store
+
+# add serviceAccountKey path here
+serviceAccountKey.json
